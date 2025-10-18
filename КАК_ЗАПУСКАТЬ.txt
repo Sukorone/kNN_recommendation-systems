@@ -1,0 +1,14 @@
+# ИНСТРУКЦИЯ ПО ЗАПУСКУ
+
+## ✅ РАБОТАЕТ:
+python main.py
+
+## ❌ НЕ РАБОТАЕТ:
+C:/Users/chillzone/anaconda3/python.exe main.py
+
+## ПРИЧИНА:
+Anaconda Python имеет проблемы с SSL и DLL библиотеками.
+Системный Python работает идеально.
+
+## РЕШЕНИЕ:
+Всегда используйте команду: python main.py

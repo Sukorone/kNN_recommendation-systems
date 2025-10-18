@@ -62,17 +62,42 @@ def recommend_items_for_user(df, user, k=2, threshold=4.0, top_n=10):
     predictions = predictions[:top_n]
     return pd.DataFrame(predictions, columns=["item", "predicted_rating"])
 
-# Оценка качества по HitRate@N
-def evaluate_hit_rate(df, user_list, threshold=4.0, top_n=5):
+# Оценка качества по HitRate@N (правильная версия)
+def evaluate_hit_rate(df, user_list, threshold=3.0, top_n=3, debug=False):
     hits = 0
     total = 0
+    
     for user in user_list:
-        recs = recommend_items_for_user(df, user, threshold=threshold, top_n=top_n)
-        top_items = recs["item"].tolist()
-        actual_items = df.loc[user][df.loc[user] >= threshold].index.tolist()
-        if any(item in top_items for item in actual_items):
+        # Находим фильмы с высокими рейтингами, которые будем "скрывать"
+        high_rated_items = df.loc[user][df.loc[user] >= threshold].index.tolist()
+        
+        if len(high_rated_items) < 2:  # Нужно минимум 2 высоких рейтинга
+            continue
+            
+        # Случайно выбираем один фильм для "скрытия"
+        import random
+        hidden_item = random.choice(high_rated_items)
+        hidden_rating = df.loc[user, hidden_item]
+        
+        # Создаем копию данных с "скрытым" рейтингом
+        df_test = df.copy()
+        df_test.loc[user, hidden_item] = np.nan
+        
+        # Получаем рекомендации для модифицированных данных
+        recs = recommend_items_for_user(df_test, user, threshold=threshold, top_n=top_n)
+        recommended_items = recs["item"].tolist()
+        
+        if debug:
+            print(f"\nОтладка для {user}:")
+            print(f"  Скрытый фильм: {hidden_item} (рейтинг: {hidden_rating})")
+            print(f"  Рекомендации: {recommended_items}")
+            print(f"  Попал ли скрытый фильм в рекомендации: {hidden_item in recommended_items}")
+        
+        # Проверяем, попал ли скрытый высокий рейтинг в рекомендации
+        if hidden_item in recommended_items:
             hits += 1
         total += 1
+    
     return hits / total if total else 0
 
 # Создание тестовых данных
@@ -140,8 +165,9 @@ def main():
     
     # Оценка качества
     users = ['User1', 'User2', 'User3']
-    hit_rate = evaluate_hit_rate(df, users, threshold=3.0, top_n=3)
-    print(f"Hit Rate@3 для пользователей {users}: {hit_rate:.2f}")
+    print("Оценка качества системы:")
+    hit_rate = evaluate_hit_rate(df, users, threshold=3.0, top_n=3, debug=True)
+    print(f"\nHit Rate@3 для пользователей {users}: {hit_rate:.2f}")
 
 if __name__ == "__main__":
     main()
